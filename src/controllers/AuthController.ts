@@ -13,7 +13,12 @@ export class AuthController {
     try {
       const dto = new RegisterDto();
       Object.assign(dto, req.body);
-      await validate(dto);
+      const erros = await validate(dto);
+      if (erros.length > 0) {
+        throw createHttpError.BadRequest(
+          "Validation failed: " + JSON.stringify(erros)
+        );
+      }
       const result = await this.authService.register(dto);
       res.status(201).json(result);
     } catch (error) {
@@ -25,7 +30,12 @@ export class AuthController {
     try {
       const dto = new LoginDto();
       Object.assign(dto, req.body);
-      await validate(dto);
+      const erros = await validate(dto);
+      if (erros.length > 0) {
+        throw createHttpError.BadRequest(
+          "Validation failed: " + JSON.stringify(erros)
+        );
+      }
       const result = await this.authService.login(dto);
       res.json(result);
     } catch (error) {

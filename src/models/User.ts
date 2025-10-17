@@ -26,6 +26,10 @@ const userSchema = new Schema<IUser>(
       required: true,
       unique: true,
     },
+    password: {
+      type: String,
+      required: true,
+    },
     role: {
       type: String,
       enum: Object.values(UserRole),

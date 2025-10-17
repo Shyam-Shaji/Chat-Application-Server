@@ -4,6 +4,7 @@ import morgan from "morgan";
 import http from "http";
 import { config } from "./config";
 import routes from "./routes";
+import { errorHandler } from "./middlewares/errorHandler";
 
 export class App {
   public app: Application;
@@ -18,6 +19,9 @@ export class App {
   private setMiddleWare(): void {
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
+    this.app.use((err: any, req: any, res: any, next: any) => {
+      errorHandler(err, req, res, next);
+    });
     this.app.use(cors());
     this.app.use(morgan("dev"));
   }

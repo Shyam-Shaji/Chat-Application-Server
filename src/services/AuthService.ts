@@ -10,6 +10,7 @@ import { RefreshTokenRepository } from "../repositories";
 import createHttpError from "http-errors";
 import { IRefreshTokenRepository } from "../interfaces/IRefreshTokenRepository";
 import { RefreshTokenDto } from "../dtos/RefreshTokenDto";
+import { randomBytes } from "crypto";
 
 const REFRESH_TOKEN_EXPIRES_IN = 7 * 24 * 60 * 60 * 1000;
 
@@ -120,8 +121,10 @@ export class AuthService implements IAuthService {
   }
 
   private async generateRefreshToken(userId: string): Promise<string> {
+    const token = randomBytes(64).toString("hex");
     const refreshToken = await this.refreshTokenRepository.create({
       userId,
+      token,
       expiresAt: new Date(Date.now() + REFRESH_TOKEN_EXPIRES_IN),
     });
     return refreshToken.token;
