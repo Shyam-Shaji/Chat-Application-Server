@@ -55,4 +55,44 @@ export class ProfileController {
       next(error);
     }
   }
+
+  async addContact(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user?.id) throw createHttpError.Unauthorized();
+
+      const dto = new AddContactDto();
+      Object.assign(dto, req.body);
+      await validate(dto);
+
+      const contact = await this.userRepository.findById(dto.contactId);
+      if (!contact) throw createHttpError.NotFound("Contact not found");
+
+      await this.userRepository.addContact(req.user.id, dto.contactId);
+      res.json({ message: "Contact added successfully" });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getContacts(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user?.id) throw createHttpError.Unauthorized();
+      const user = await this.userRepository.findByIdWithContacts(req.user.id);
+      res.json({
+        contacts: user?.contacts || [],
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async removeContact(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user?.id) throw createHttpError.Unauthorized();
+      await this.userRepository.removeContact(req.user.id, req.params.id);
+      res.json({ message: "Contact removed successfully" });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

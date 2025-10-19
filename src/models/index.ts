@@ -7,3 +7,8 @@ export { UserRole } from "./User";
 /** Refresh Token */
 export { RefreshTokenModel } from "./RefreshToken";
 export type { IRefreshToken } from "./RefreshToken";
+
+/** Message */
+export { MessageModel } from "./Message";
+export type { IMessage } from "./Message";
+export { MessageType } from "./Message";
