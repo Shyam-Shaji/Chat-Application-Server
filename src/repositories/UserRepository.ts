@@ -44,4 +44,15 @@ export class UserRepository implements IUserRepository {
       .populate("contacts", "username displayName avatarUrl status")
       .lean<IUser>();
   }
+
+  async searchUsers(query: string): Promise<IUser[]> {
+    return UserModel.find({
+      $or: [
+        { username: { $regex: query, $options: "i" } },
+        { displayName: { $regex: query, $options: "i" } },
+      ],
+    })
+      .select("username displayName avatarUrl status lastSeen")
+      .lean<IUser[]>();
+  }
 }

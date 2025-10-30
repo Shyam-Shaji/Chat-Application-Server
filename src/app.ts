@@ -18,7 +18,11 @@ export class App {
     this.app = express();
     this.httpServer = http.createServer(this.app);
     this.io = new Server(this.httpServer, {
-      cors: { origin: "*", methods: ["GET", "POST"] },
+      cors: {
+        origin: ["http://localhost:5173"], // frontend URL
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+        credentials: true,
+      },
     });
     this.setMiddleWare();
     this.setRoutes();
@@ -27,12 +31,17 @@ export class App {
   }
 
   private setMiddleWare(): void {
+    this.app.use(
+      cors({
+        origin: ["http://localhost:5173"],
+        credentials: true,
+      })
+    );
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use((err: any, req: any, res: any, next: any) => {
       errorHandler(err, req, res, next);
     });
-    this.app.use(cors());
     this.app.use(morgan("dev"));
   }
 

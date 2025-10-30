@@ -95,4 +95,26 @@ export class ProfileController {
       next(error);
     }
   }
+
+  async searchUsers(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user?.id) throw createHttpError.Unauthorized();
+      const query = req.query.q as string;
+      if (!query) throw createHttpError.BadRequest("Search query is required");
+
+      const users = await this.userRepository.searchUsers(query);
+      res.json({
+        users: users.map((user) => ({
+          id: user._id,
+          username: user.username,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
+          status: user.status,
+          lastSeen: user.lastSeen,
+        })),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

@@ -4,23 +4,30 @@ import { Types } from "mongoose";
 
 export class MessageRepository implements IMessageRepository {
   async create(message: Partial<IMessage>): Promise<IMessage> {
-    return MessageModel.create({
+    const msg = await MessageModel.create({
       ...message,
       readBy: [],
     });
+    return msg.toObject() as IMessage;
   }
 
   async findByConversation(
     conversationId: string,
-    options: { limit?: number; cursor?: string }
+    options: { limit?: number; cursor?: string } = {}
   ): Promise<IMessage[]> {
     const { limit = 20, cursor } = options;
-    const query: any = {
+
+    const query: Record<string, any> = {
       $or: [
-        { roomId: conversationId },
-        { $and: [{ sender: conversationId }, { receiver: conversationId }] },
+        { roomId: new Types.ObjectId(conversationId) },
+        {
+          $and: [
+            { sender: new Types.ObjectId(conversationId) },
+            { receiver: new Types.ObjectId(conversationId) },
+          ],
+        },
       ],
-      deletedAt: { $exists: false },
+      deletedAt: null,
     };
 
     if (cursor) {
@@ -38,7 +45,7 @@ export class MessageRepository implements IMessageRepository {
 
   async findById(id: string): Promise<IMessage | null> {
     return MessageModel.findById(id)
-      .populate("sender", "username displayName")
+      .populate("sender", "username displayName avatarUrl")
       .lean<IMessage | null>();
   }
 
@@ -46,10 +53,11 @@ export class MessageRepository implements IMessageRepository {
     id: string,
     updates: Partial<IMessage>
   ): Promise<IMessage | null> {
-    return MessageModel.findByIdAndUpdate(id, {
-      ...updates,
-      editedAt: new Date(),
-    }).lean<IMessage | null>();
+    return MessageModel.findByIdAndUpdate(
+      id,
+      { ...updates, editedAt: new Date() },
+      { new: true }
+    ).lean<IMessage | null>();
   }
 
   async delete(id: string): Promise<void> {

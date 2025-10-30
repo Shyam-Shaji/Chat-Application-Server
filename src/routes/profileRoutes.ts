@@ -31,4 +31,10 @@ router.get(
   controller.removeContact.bind(controller)
 );
 
+router.get(
+  "/search",
+  AuthMiddleware.authenticate,
+  controller.searchUsers.bind(controller)
+);
+
 export default router;

@@ -7,14 +7,15 @@ export enum MessageType {
 }
 
 export interface IMessage extends Document {
+  _id: Types.ObjectId;
   sender: Types.ObjectId;
   receiver?: Types.ObjectId | null;
   roomId?: Types.ObjectId | null;
   content: string;
   type: MessageType;
   attachments?: string[];
-  editedAt?: Date;
-  deleteAt?: Date;
+  editedAt?: Date | null;
+  deletedAt?: Date | null;
   readBy: Types.ObjectId[];
 
   createdAt: Date;
@@ -31,14 +32,17 @@ const messageSchema = new Schema<IMessage>(
     receiver: {
       type: Schema.Types.ObjectId,
       ref: "User",
+      default: null,
     },
     roomId: {
       type: Schema.Types.ObjectId,
       ref: "Conversation",
+      default: null,
     },
     content: {
       type: String,
       required: true,
+      trim: true,
     },
     type: {
       type: String,
@@ -48,13 +52,16 @@ const messageSchema = new Schema<IMessage>(
     attachments: [
       {
         type: String,
+        trim: true,
       },
     ],
     editedAt: {
       type: Date,
+      default: null,
     },
-    deleteAt: {
+    deletedAt: {
       type: Date,
+      default: null,
     },
     readBy: [
       {
