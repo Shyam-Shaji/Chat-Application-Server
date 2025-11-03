@@ -29,7 +29,7 @@ const conversationSchema = new Schema<IConversation>(
       {
         type: Schema.Types.ObjectId,
         ref: "User",
-        require: true,
+        required: true,
       },
     ],
     name: {

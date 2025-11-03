@@ -1,86 +1,131 @@
 import { IMessageRepository } from "../interfaces/IMessageRepository";
-import { ConversationRepository } from "../repositories/ConversationRepository";
 import { SendMessageDto } from "../dtos/MessageDto";
 import { EditMessageDto } from "../dtos/EditMessageDto";
 import { MessageRepository } from "../repositories";
 import createHttpError from "http-errors";
 import { IMessage, MessageType } from "../models";
 import { Types } from "mongoose";
+import { ConversationService } from "./ConversationService";
 
 export class MessageService {
   constructor(
     private messageRepo: IMessageRepository = new MessageRepository(),
-    private conversationRepo: ConversationRepository = new ConversationRepository()
+    private conversationService: ConversationService = new ConversationService()
   ) {}
 
+  private toObjectId(id: string): Types.ObjectId {
+    if (!Types.ObjectId.isValid(id)) {
+      throw createHttpError.BadRequest(`Invalid ID: ${id}`);
+    }
+    return new Types.ObjectId(id);
+  }
+
   async sendMessage(dto: SendMessageDto, senderId: string): Promise<IMessage> {
-    let conversationId: string | undefined = dto.roomId;
+    let conversationId: string;
 
-    if (!conversationId && dto.receiverId) {
-      const conversation =
-        await this.conversationRepo.findOrCreatePrivateConversation(
-          senderId,
-          dto.receiverId
-        );
-
-      if (!conversation?._id) {
-        throw new Error("Conversation creation failed — no ID returned");
-      }
-
+    // 1. Private chat → get or create via ConversationService
+    if (!dto.roomId && dto.receiverId) {
+      const conversation = await this.conversationService.getOrCreatePrivate(
+        senderId,
+        dto.receiverId
+      );
       conversationId = conversation._id.toString();
     }
-
-    if (!conversationId) {
-      throw new Error("Conversation ID is undefined — cannot send message");
+    // 2. Group chat → use provided roomId
+    else if (dto.roomId) {
+      conversationId = dto.roomId;
+    }
+    // 3. Missing both
+    else {
+      throw createHttpError.BadRequest(
+        "Either roomId or receiverId is required"
+      );
     }
 
-    const message = await this.messageRepo.create({
+    // Validate conversation exists (via repo inside service)
+    const convObjId = this.toObjectId(conversationId);
+    const conversation = await this.conversationService
+      .getRepo()
+      .findById(convObjId);
+    if (!conversation) throw createHttpError.NotFound("Conversation not found");
+
+    // Build message data
+    const messageData: Partial<IMessage> = {
       content: dto.content,
       type: dto.type ?? MessageType.TEXT,
       attachments: dto.attachments ?? [],
-      sender: new Types.ObjectId(senderId),
-      receiver: dto.receiverId ? new Types.ObjectId(dto.receiverId) : null,
-      roomId: new Types.ObjectId(conversationId),
-    });
+      sender: this.toObjectId(senderId),
+      conversation: convObjId,
+    };
 
-    await this.conversationRepo.updateLastMessage(
-      conversationId,
-      message._id.toString()
-    );
+    if (!dto.roomId && dto.receiverId) {
+      messageData.receiver = this.toObjectId(dto.receiverId);
+    }
 
-    return message;
+    // Create message
+    const message = await this.messageRepo.create(messageData);
+
+    // Update lastMessage in conversation
+    await this.conversationService
+      .getRepo()
+      .updateLastMessage(convObjId, message._id as Types.ObjectId);
+
+    // Return populated message
+    const populated = await this.messageRepo.findById(message._id.toString());
+    if (!populated)
+      throw createHttpError.InternalServerError(
+        "Message not found after creation"
+      );
+
+    return populated;
   }
 
   async getMessages(
     conversationId: string,
     options: { limit?: number; cursor?: string } = {}
   ): Promise<IMessage[]> {
-    return this.messageRepo.findByConversation(conversationId, options);
+    const convObjId = this.toObjectId(conversationId);
+    return this.messageRepo.findByConversation(convObjId.toString(), options);
   }
 
   async editMessage(
     messageId: string,
     dto: EditMessageDto,
     userId: string
-  ): Promise<IMessage | null> {
-    const message = await this.messageRepo.findById(messageId);
+  ): Promise<IMessage> {
+    const msgObjId = this.toObjectId(messageId);
+    const message = await this.messageRepo.findById(msgObjId.toString());
     if (!message) throw createHttpError.NotFound("Message not found");
-    if (message.sender.toString() !== userId)
-      throw createHttpError.Forbidden("You cannot edit this message");
+    if (message.sender.toString() !== userId) {
+      throw createHttpError.Forbidden("You can only edit your own messages");
+    }
 
-    return this.messageRepo.update(messageId, { content: dto.content });
+    const updated = await this.messageRepo.update(msgObjId.toString(), {
+      content: dto.content,
+    });
+    if (!updated) throw createHttpError.InternalServerError("Failed to update");
+    return updated;
   }
 
   async deleteMessage(messageId: string, userId: string): Promise<void> {
-    const message = await this.messageRepo.findById(messageId);
+    const msgObjId = this.toObjectId(messageId);
+    const message = await this.messageRepo.findById(msgObjId.toString());
     if (!message) throw createHttpError.NotFound("Message not found");
-    if (message.sender.toString() !== userId)
-      throw createHttpError.Forbidden("You cannot delete this message");
+    if (message.sender.toString() !== userId) {
+      throw createHttpError.Forbidden("You can only delete your own messages");
+    }
 
-    await this.messageRepo.delete(messageId);
+    await this.messageRepo.delete(msgObjId.toString());
   }
 
   async markRead(messageId: string, userId: string): Promise<void> {
-    await this.messageRepo.markRead(messageId, userId);
+    const msgObjId = this.toObjectId(messageId);
+    const message = await this.messageRepo.findById(msgObjId.toString());
+    if (!message) throw createHttpError.NotFound("Message not found");
+    if (message.receiver?.toString() !== userId) {
+      throw createHttpError.Forbidden("You can only mark received messages");
+    }
+
+    await this.messageRepo.markRead(msgObjId.toString(), userId);
   }
 }

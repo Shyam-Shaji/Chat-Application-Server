@@ -15,7 +15,7 @@ router.post(
   controller.sendMessage.bind(controller)
 );
 router.get(
-  "/conversation/:id",
+  "/:id",
   AuthMiddleware.authenticate,
   controller.getMessages.bind(controller)
 );
@@ -29,7 +29,7 @@ router.delete(
   AuthMiddleware.authenticate,
   controller.deleteMessage.bind(controller)
 );
-router.patch(
+router.post(
   "/:id/read",
   AuthMiddleware.authenticate,
   controller.markRead.bind(controller)

@@ -17,13 +17,17 @@ export interface IMessage extends Document {
   editedAt?: Date | null;
   deletedAt?: Date | null;
   readBy: Types.ObjectId[];
-
+  conversation: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const messageSchema = new Schema<IMessage>(
   {
+    conversation: {
+      type: Schema.Types.ObjectId,
+      ref: "Conversation",
+    },
     sender: {
       type: Schema.Types.ObjectId,
       ref: "User",
