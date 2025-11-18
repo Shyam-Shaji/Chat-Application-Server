@@ -79,7 +79,14 @@ export class ProfileController {
       if (!req.user?.id) throw createHttpError.Unauthorized();
       const user = await this.userRepository.findByIdWithContacts(req.user.id);
       res.json({
-        contacts: user?.contacts || [],
+        contacts: (user?.contacts || []).map((c: any) => ({
+          id: c._id ?? c.id,
+          username: c.username,
+          displayName: c.displayName,
+          avatarUrl: c.avatarUrl,
+          status: c.status,
+          lastSeen: c.lastSeen,
+        })),
       });
     } catch (error) {
       next(error);
@@ -109,6 +116,28 @@ export class ProfileController {
           username: user.username,
           displayName: user.displayName,
           avatarUrl: user.avatarUrl,
+          status: user.status,
+          lastSeen: user.lastSeen,
+        })),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getAllUsers(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user?.id) throw createHttpError.Unauthorized();
+
+      const users = await this.userRepository.findAll();
+
+      res.json({
+        users: users.map((user) => ({
+          id: user._id,
+          username: user.username,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
+          email: user.email,
           status: user.status,
           lastSeen: user.lastSeen,
         })),

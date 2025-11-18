@@ -24,7 +24,7 @@ export class MessageRepository implements IMessageRepository {
           $and: [
             { sender: new Types.ObjectId(conversationId) },
             { receiver: new Types.ObjectId(conversationId) },
-          ],
+          ], //[ ]
         },
       ],
       deletedAt: null,

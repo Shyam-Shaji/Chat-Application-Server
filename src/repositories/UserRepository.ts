@@ -24,12 +24,14 @@ export class UserRepository implements IUserRepository {
   }
 
   async addContact(userId: string, contactId: string): Promise<void> {
-    await UserModel.findByIdAndUpdate(userId, {
-      $addToSet: { contacts: contactId }, //Prevent duplicate
-    });
-    await UserModel.findByIdAndUpdate(contactId, {
-      $addToSet: { contacts: userId },
-    });
+    if (userId === contactId) return;
+    await UserModel.findByIdAndUpdate(
+      userId,
+      {
+        $addToSet: { contacts: contactId }, //Prevent duplicate
+      },
+      { new: true }
+    );
   }
 
   async removeContact(userId: string, contactId: string): Promise<void> {
@@ -53,6 +55,12 @@ export class UserRepository implements IUserRepository {
       ],
     })
       .select("username displayName avatarUrl status lastSeen")
+      .lean<IUser[]>();
+  }
+
+  async findAll(): Promise<IUser[]> {
+    return UserModel.find({})
+      .select("username displayName avatarUrl email status lastSeen")
       .lean<IUser[]>();
   }
 }

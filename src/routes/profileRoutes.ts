@@ -25,6 +25,7 @@ router.get(
   AuthMiddleware.authenticate,
   controller.getContacts.bind(controller)
 );
+
 router.get(
   "/contacts/:id",
   AuthMiddleware.authenticate,
@@ -35,6 +36,12 @@ router.get(
   "/search",
   AuthMiddleware.authenticate,
   controller.searchUsers.bind(controller)
+);
+
+router.get(
+  "/users",
+  AuthMiddleware.authenticate,
+  controller.getAllUsers.bind(controller)
 );
 
 export default router;

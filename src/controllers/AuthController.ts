@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { validate } from "class-validator";
-import { AuthService } from "../services";
+import { AuthService } from "@services/AuthService";
 import { RegisterDto } from "../dtos/RegisterDto";
 import { LoginDto } from "../dtos/LoginDto";
 import createHttpError from "http-errors";
